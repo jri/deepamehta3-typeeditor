@@ -1,0 +1,25 @@
+.field-editor {
+    vertical-align: top;
+    border-width: 1px;
+    border-color: gray;
+    border-bottom-style: dashed;
+    padding-top: 0.4em;
+    padding-bottom: 0.4em;
+}
+
+.field-editor-menu {
+    margin-right: 0.7em;
+}
+
+.field-editor-label {
+    margin-right: 0.7em;
+}
+
+.add-field-button {
+    margin-top: 1em;
+    margin-bottom: 1em;
+}
+
+.delete-field-button {
+    margin-right: 1.2em;
+}
