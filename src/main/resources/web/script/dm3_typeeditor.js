@@ -6,18 +6,20 @@ function dm3_typeeditor() {
     // The type definition used for newly created topic types
     var DEFAULT_TYPE_DEFINITION = {
         fields: [
-            {id: "Name",         model: {type: "text"}, view: {editor: "single line"}, content: ""},
-            {id: "Description",  model: {type: "html"}, view: {editor: "multi line"},  content: ""}
+            {id: "Name",         model: {type: "text"}, view: {editor: "single line"}},
+            {id: "Description",  model: {type: "html"}, view: {editor: "multi line"}}
         ],
         view: {},
         implementation: "PlainDocument"
     }
 
+    // Used to create the field type menu.
     // TODO: let this table build dynamically by installed plugins
     var FIELD_TYPES = {
         text: "Text",
-        html: "Styled Text (HTML)",
+        number: "Number",
         date: "Date",
+        html: "Styled Text (HTML)",
         relation: "Relation"
     }
 
@@ -31,45 +33,13 @@ function dm3_typeeditor() {
 
 
 
-    this.init = function() {
-        var db_topic_types = load_topic_types()
-        //
-        // var load_count = 0
-        // var save_count = 0
-        //
-        // 1) Make cached type definitions persistent for the first time (creating topic type topics).
-        for (var type_id in topic_types) {
-            if (!db_topic_types[type_id]) {
-                save_topic_type(type_id, topic_types[type_id])
-                // save_count++
-            }
-        }
-        // 2) Extend and update the cached type definitions by the DB's type definitions.
-        for (var type_id in db_topic_types) {
-            // Note: we override all cached type definitions with the DB's version because it
-            // might differ. This is the case if programatically created (through plugins)
-            // type definitions are changed interactively.
-            //
-            // TODO: syncing type definitions is required in the other direction too!
-            // Programatically created type definitions might be more up-to-date if
-            // a plugin's type definition is modified by plugin developer.
-            //
-            add_topic_type(type_id, db_topic_types[type_id])    // Note: semantically this is an "update type" but
-                                                                // functional there is no difference to "add type"
-            // load_count++
-        }
-        //
-        // alert("dm3_typing.init: topic types:\n" + load_count +
-        // " loaded from DB\n" + save_count + " saved to DB")
-    }
-
     this.pre_create = function(doc) {
-        if (doc.type == "Topic" && doc.topic_type == "Topic Type") {
+        if (doc.type_id == "Topic Type") {
             // Note: types created interactively must be extended by an default type definition.
             // By contrast, types created programatically (through plugins) already have an
             // type definition (which must not be overridden).
-            if (!doc.type_definition) {
-                doc.type_definition = DEFAULT_TYPE_DEFINITION
+            if (!get_topic_type(doc)) {
+                get_topic_type(doc) = DEFAULT_TYPE_DEFINITION
             }
         }
     }
@@ -80,10 +50,10 @@ function dm3_typeeditor() {
      * 2) Rebuild the "Create" button's type menu.
      */
     this.post_update = function(doc) {
-        if (doc.type == "Topic" && doc.topic_type == "Topic Type") {
+        if (doc.type_id == "Topic Type") {
             // 1) Update cached type definition
-            var type_id = get_value(doc, "type-id")
-            add_topic_type(type_id, doc.type_definition)    // Note: semantically this is an "update type" but
+            var type_id = get_value(doc, "type_id")
+            add_topic_type(type_id, get_topic_type(doc))    // Note: semantically this is an "update type" but
                                                             // functional there is no difference to "add type"
             // 2) Rebuild type menu
             rebuild_type_menu("create-type-menu")
@@ -93,7 +63,7 @@ function dm3_typeeditor() {
     this.post_delete = function(doc) {
         if (doc.type == "Topic" && doc.topic_type == "Topic Type") {
             // 1) Update cached type definition
-            var type_id = get_value(doc, "type-id")
+            var type_id = get_value(doc, "type_id")
             remove_topic_type(type_id)
             // 2) Rebuild type menu
             rebuild_type_menu("create-type-menu")
@@ -103,7 +73,7 @@ function dm3_typeeditor() {
     this.render_field_content = function(field, doc) {
         if (field.model.type == "field-definition") {
             var content = $("<ul>")
-            for (var i = 0, field; field = doc.type_definition.fields[i]; i++) {
+            for (var i = 0, field; field = get_topic_type(doc).fields[i]; i++) {
                 content.append($("<li>").text(field_label(field) + " (" + FIELD_TYPES[field.model.type] + ")"))
             }
             return content
@@ -132,7 +102,7 @@ function dm3_typeeditor() {
     this.post_render_form_field = function(field, doc) {
         if (field.model.type == "field-definition") {
             field_editors = []
-            for (var i = 0, field; field = doc.type_definition.fields[i]; i++) {
+            for (var i = 0, field; field = get_topic_type(doc).fields[i]; i++) {
                 add_field_editor(field, i)
             }
         }
@@ -146,24 +116,49 @@ function dm3_typeeditor() {
     }
 
     this.pre_submit_form = function(doc) {
-        if (doc.topic_type == "Topic Type") {
+        if (doc.type_id == "Topic Type") {
             // update type definition (add, remove, and update fields)
+            var type_id = doc.properties.type_id
+            log("Updating topic type \"" + type_id + "\" (" + field_editors.length + " data fields):")
             for (var i = 0, editor; editor = field_editors[i]; i++) {
                 if (editor.field_is_new) {
                     // add field
-                    doc.type_definition.fields.push(editor.get_new_field())
+                    log("..... \"" + editor.field_id + "\" => new")
+                    add_data_field(editor)
                 } else if (editor.field_is_deleted) {
                     // delete field
-                    remove_field(doc.type_definition, editor.field_id)
+                    log("..... \"" + editor.field_id + "\" => deleted")
+                    remove_field(get_topic_type(doc), editor.field_id)
                 } else if (editor.field_has_changed) {
                     // update field
-                    editor.update_field()
+                    log("..... \"" + editor.field_id + "\" => changed")
+                    update_data_field(editor)
+                } else {
+                    log("..... \"" + editor.field_id + "\" => dummy")
                 }
             }
             // update type definition (icon)
             var icon_src = $("#field_Icon img").attr("src")
-            doc.type_definition.view.icon_src = icon_src
+            get_topic_type(doc).view.icon_src = icon_src
             // doc.view.icon_src = icon_src
+        }
+
+        function add_data_field(editor) {
+            var type_id = doc.properties.type_id
+            var field = editor.get_new_field()
+            // update DB
+            dms.add_data_field(type_id, field)
+            // update memory
+            add_field(type_id, field)
+        }
+
+        function update_data_field(editor) {
+            var type_id = doc.properties.type_id
+            // update memory
+            var field = editor.update_field()
+            log(".......... update_data_field() => " + JSON.stringify(field))
+            // update DB
+            dms.update_data_field(type_id, field)
         }
     }
 
@@ -175,18 +170,10 @@ function dm3_typeeditor() {
 
 
 
-    function load_topic_types() {
-        var rows = db.view("deepamehta3/dm3-typeeditor_topictypes").rows
-        var topic_types = []
-        for (var i = 0, row; row = rows[i]; i++) {
-            topic_types[row.key] = row.value
-        }
-        return topic_types
-    }
-
+    // FIXME: to be dropped
     function save_topic_type(type_id, typedef) {
         log("Saving topic type \"" + type_id + "\"")
-        var type_topic = create_topic("Topic Type", {"type-id": type_id}, {type_definition: typedef})
+        var type_topic = create_topic("Topic Type", {"type_id": type_id}, {type_definition: typedef})
         // icon
         if (typedef.view && typedef.view.icon_src) {
             var icon_src = typedef.view.icon_src
@@ -238,8 +225,25 @@ function dm3_typeeditor() {
         $("#field-editors").append(field_editor.dom)
     }
 
+
+
+    /************************************/
+    /********** Custom Classes **********/
+    /************************************/
+
+
+
+    /**
+     * Constructs the GUI for editing an underlying data field model.
+     * All changes are performed on a working copy, allowing the caller to cancel all changes.
+     * Keeps track of user interaction and tells the caller how to update the actual data field model eventually.
+     *
+     * @param   field   the underlying data field model to edit
+     */
     function FieldEditor(field, editor_id) {
 
+        log("Creating FieldEditor for \"" + field.id + "\" editor ID=" + editor_id);
+        log("..... " + JSON.stringify(field))
         var editor = this
         var delete_button = ui.button("deletefield-button_" + editor_id, do_delete_field, "", "circle-minus")
         var fieldname_input = $("<input>").val(field_label(field))
@@ -262,7 +266,7 @@ function dm3_typeeditor() {
         this.field_id = field.id
         this.dom = $("<tr>").append(td1).append(td2)
         //
-        this.field_is_new = !field.id       // Maximal one flag evaluates to true.
+        this.field_is_new = !field.id       // Maximal one of these 3 flags evaluates to true.
         this.field_is_deleted = false       // Note: all flags might evaluate to false. This is the case
         this.field_has_changed = field.id   // for newly added fields which are removed right away.
 
@@ -273,7 +277,7 @@ function dm3_typeeditor() {
         }
 
         this.update_field = function() {
-            update_field()
+            return update_field()
         }
 
         /**
@@ -292,6 +296,7 @@ function dm3_typeeditor() {
             if (field.model.type == "relation") {
                 options.view.editor = "checkboxes"
             }
+            return field
         }
 
         function create_fieldtype_menu() {
@@ -331,15 +336,19 @@ function dm3_typeeditor() {
                     options.view.editor = "single line"
                 }
                 break
-            case "html":
+            case "number":
                 break
             case "date":
+                break
+            case "html":
                 break
             case "relation":
                 if (!options.model.related_type) {
                     options.model.related_type = keys(topic_types)[0]
                 }
                 break
+            default:
+                alert("ERROR (FieldEditor.fieldtype_changed):\nunexpected field type (" + options.model.type + ")")
             }
             //
             update_options_area()
@@ -361,16 +370,18 @@ function dm3_typeeditor() {
                     build_lines_input()
                 }
                 break
-            case "html":
-                build_lines_input()
+            case "number":
                 break
             case "date":
+                break
+            case "html":
+                build_lines_input()
                 break
             case "relation":
                 build_topictype_menu()
                 break
             default:
-                alert("ERROR at FieldEditor.build_options_area: unexpected field type (" + options.model.type + ")")
+                alert("ERROR (FieldEditor.build_options_area):\nunexpected field type (" + options.model.type + ")")
             }
 
             function build_texteditor_menu() {
