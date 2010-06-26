@@ -125,14 +125,14 @@ function dm3_typeeditor() {
                     // add field
                     log("..... \"" + editor.field_id + "\" => new")
                     add_data_field(editor)
-                } else if (editor.field_is_deleted) {
-                    // delete field
-                    log("..... \"" + editor.field_id + "\" => deleted")
-                    remove_field(get_topic_type(doc), editor.field_id)
                 } else if (editor.field_has_changed) {
                     // update field
                     log("..... \"" + editor.field_id + "\" => changed")
                     update_data_field(editor)
+                } else if (editor.field_is_deleted) {
+                    // delete field
+                    log("..... \"" + editor.field_id + "\" => deleted")
+                    remove_data_field(editor)
                 } else {
                     log("..... \"" + editor.field_id + "\" => dummy")
                 }
@@ -147,7 +147,7 @@ function dm3_typeeditor() {
             var type_id = doc.properties.type_id
             var field = editor.get_new_field()
             // update DB
-            dms.add_data_field(type_id, field)
+            dmc.add_data_field(type_id, field)
             // update memory
             add_field(type_id, field)
         }
@@ -158,7 +158,15 @@ function dm3_typeeditor() {
             var field = editor.update_field()
             log(".......... update_data_field() => " + JSON.stringify(field))
             // update DB
-            dms.update_data_field(type_id, field)
+            dmc.update_data_field(type_id, field)
+        }
+
+        function remove_data_field(editor) {
+            var type_id = doc.properties.type_id
+            // update DB
+            dmc.remove_data_field(type_id, editor.field_id)
+            // update memory
+            remove_field(type_id, editor.field_id)
         }
     }
 
