@@ -34,7 +34,7 @@ function dm3_typeeditor() {
 
 
     this.pre_create = function(doc) {
-        if (doc.type_id == "Topic Type") {
+        if (doc.type_uri == "http://www.deepamehta.de/core/topictype/TopicType") {
             // Note: types created interactively must be extended by an default type definition.
             // By contrast, types created programatically (through plugins) already have an
             // type definition (which must not be overridden).
@@ -50,10 +50,10 @@ function dm3_typeeditor() {
      * 2) Rebuild the "Create" button's type menu.
      */
     this.post_update = function(doc) {
-        if (doc.type_id == "Topic Type") {
+        if (doc.type_uri == "http://www.deepamehta.de/core/topictype/TopicType") {
             // 1) Update cached type definition
-            var type_id = get_value(doc, "type_id")
-            add_topic_type(type_id, get_topic_type(doc))    // Note: semantically this is an "update type" but
+            var type_uri = get_value(doc, "type_uri")
+            add_topic_type(type_uri, get_topic_type(doc))    // Note: semantically this is an "update type" but
                                                             // functional there is no difference to "add type"
             // 2) Rebuild type menu
             rebuild_type_menu("create-type-menu")
@@ -61,10 +61,10 @@ function dm3_typeeditor() {
     }
 
     this.post_delete = function(doc) {
-        if (doc.type == "Topic" && doc.topic_type == "Topic Type") {
+        if (doc.type == "Topic" && doc.topic_type == "http://www.deepamehta.de/core/topictype/TopicType") {
             // 1) Update cached type definition
-            var type_id = get_value(doc, "type_id")
-            remove_topic_type(type_id)
+            var type_uri = get_value(doc, "type_uri")
+            remove_topic_type(type_uri)
             // 2) Rebuild type menu
             rebuild_type_menu("create-type-menu")
         }
@@ -116,57 +116,57 @@ function dm3_typeeditor() {
     }
 
     this.pre_submit_form = function(doc) {
-        if (doc.type_id == "Topic Type") {
+        if (doc.type_uri == "http://www.deepamehta.de/core/topictype/TopicType") {
             // update type definition (add, remove, and update fields)
-            var type_id = doc.properties.type_id
-            log("Updating topic type \"" + type_id + "\" (" + field_editors.length + " data fields):")
+            var type_uri = doc.properties["http://www.deepamehta.de/core/property/TypeURI"]
+            log("Updating topic type \"" + type_uri + "\" (" + field_editors.length + " data fields):")
             for (var i = 0, editor; editor = field_editors[i]; i++) {
                 if (editor.field_is_new) {
                     // add field
-                    log("..... \"" + editor.field_id + "\" => new")
+                    log("..... \"" + editor.field_uri + "\" => new")
                     add_data_field(editor)
                 } else if (editor.field_has_changed) {
                     // update field
-                    log("..... \"" + editor.field_id + "\" => changed")
+                    log("..... \"" + editor.field_uri + "\" => changed")
                     update_data_field(editor)
                 } else if (editor.field_is_deleted) {
                     // delete field
-                    log("..... \"" + editor.field_id + "\" => deleted")
+                    log("..... \"" + editor.field_uri + "\" => deleted")
                     remove_data_field(editor)
                 } else {
-                    log("..... \"" + editor.field_id + "\" => dummy")
+                    log("..... \"" + editor.field_uri + "\" => dummy")
                 }
             }
             // update type definition (icon)
-            var icon_src = $("#field_Icon img").attr("src")
+            var icon_src = $("[field-uri=http://www.deepamehta.de/core/property/Icon] img").attr("src")
             get_topic_type(doc).view.icon_src = icon_src
             // doc.view.icon_src = icon_src
         }
 
         function add_data_field(editor) {
-            var type_id = doc.properties.type_id
+            var type_uri = doc.properties["http://www.deepamehta.de/core/property/TypeURI"]
             var field = editor.get_new_field()
             // update DB
-            dmc.add_data_field(type_id, field)
+            dmc.add_data_field(type_uri, field)
             // update memory
-            add_field(type_id, field)
+            add_field(type_uri, field)
         }
 
         function update_data_field(editor) {
-            var type_id = doc.properties.type_id
+            var type_uri = doc.properties["http://www.deepamehta.de/core/property/TypeURI"]
             // update memory
             var field = editor.update_field()
             log(".......... update_data_field() => " + JSON.stringify(field))
             // update DB
-            dmc.update_data_field(type_id, field)
+            dmc.update_data_field(type_uri, field)
         }
 
         function remove_data_field(editor) {
-            var type_id = doc.properties.type_id
+            var type_uri = doc.properties["http://www.deepamehta.de/core/property/TypeURI"]
             // update DB
-            dmc.remove_data_field(type_id, editor.field_id)
+            dmc.remove_data_field(type_uri, editor.field_uri)
             // update memory
-            remove_field(type_id, editor.field_id)
+            remove_field(type_uri, editor.field_uri)
         }
     }
 
@@ -250,7 +250,7 @@ function dm3_typeeditor() {
      */
     function FieldEditor(field, editor_id) {
 
-        log("Creating FieldEditor for \"" + field.id + "\" editor ID=" + editor_id);
+        log("Creating FieldEditor for \"" + field.uri + "\" editor ID=" + editor_id);
         log("..... " + JSON.stringify(field))
         var editor = this
         var delete_button = ui.button("deletefield-button_" + editor_id, do_delete_field, "", "circle-minus")
@@ -271,15 +271,15 @@ function dm3_typeeditor() {
         td2.append(fieldtype_menu.dom).append(options_area)
         build_options_area()
         //
-        this.field_id = field.id
+        this.field_uri = field.uri
         this.dom = $("<tr>").append(td1).append(td2)
         //
-        this.field_is_new = !field.id       // Maximal one of these 3 flags evaluates to true.
+        this.field_is_new = !field.uri      // Maximal one of these 3 flags evaluates to true.
         this.field_is_deleted = false       // Note: all flags might evaluate to false. This is the case
-        this.field_has_changed = field.id   // for newly added fields which are removed right away.
+        this.field_has_changed = field.uri  // for newly added fields which are removed right away.
 
         this.get_new_field = function() {
-            field.id = to_id(fieldname_input.val())
+            field.uri = to_id(fieldname_input.val())
             update_field()
             return field
         }
