@@ -5,11 +5,22 @@ function dm3_typeeditor() {
 
     // The type definition used for newly created topic types
     var DEFAULT_TYPE_DEFINITION = {
+        uri: "http://www.deepamehta.de/core/topictype/UnnamedTopicType",
         fields: [
-            {id: "Name",         model: {type: "text"}, view: {editor: "single line"}},
-            {id: "Description",  model: {type: "html"}, view: {editor: "multi line"}}
+            {
+                uri: "http://www.deepamehta.de/core/property/Name",
+                model: {type: "text"},
+                view: {label: "Name"},
+                indexing_mode: "FULLTEXT"
+            },
+            {
+                uri: "http://www.deepamehta.de/core/property/Description",
+                model: {type: "html"},
+                view: {label: "Description", editor: "multi line"},
+                indexing_mode: "FULLTEXT"
+            }
         ],
-        view: {},
+        view: {label: "Unnamed"},
         implementation: "PlainDocument"
     }
 
@@ -33,14 +44,10 @@ function dm3_typeeditor() {
 
 
 
-    this.pre_create = function(doc) {
-        if (doc.type_uri == "http://www.deepamehta.de/core/topictype/TopicType") {
-            // Note: types created interactively must be extended by an default type definition.
-            // By contrast, types created programatically (through plugins) already have an
-            // type definition (which must not be overridden).
-            if (!get_topic_type(doc)) {
-                get_topic_type(doc) = DEFAULT_TYPE_DEFINITION
-            }
+    this.custom_create_topic = function(type_uri) {
+        if (type_uri == "http://www.deepamehta.de/core/topictype/TopicType") {
+            var topic_type = create_topic_type(DEFAULT_TYPE_DEFINITION)
+            return dmc.get_topic(topic_type.id)     // return the topic perspective of the type
         }
     }
 
@@ -48,39 +55,64 @@ function dm3_typeeditor() {
      * Once a "Topic Type" topic is updated we must
      * 1) Update the cached type definition.
      * 2) Rebuild the "Create" button's type menu.
+     *
+     * @param   topic   The topic just created.
+     *                  Note: in case the just created topic is a type, the entire type definition is
+     *                  passed (object with "uri", "fields", "view", and "implementation" attributes).
      */
-    this.post_update = function(doc) {
-        if (doc.type_uri == "http://www.deepamehta.de/core/topictype/TopicType") {
+    this.post_create_topic = function(topic) {
+        if (topic.type_uri == "http://www.deepamehta.de/core/topictype/TopicType") {
+            alert("typeeditor.post_create_topic: Topic=" + JSON.stringify(topic))
             // 1) Update cached type definition
-            var type_uri = get_value(doc, "type_uri")
-            add_topic_type(type_uri, get_topic_type(doc))    // Note: semantically this is an "update type" but
-                                                            // functional there is no difference to "add type"
+            var type_uri = topic.uri
+            add_topic_type(type_uri, topic)     // Note: semantically this is an "update type" but
+                                                // functional there is no difference to "add type"
             // 2) Rebuild type menu
             rebuild_type_menu("create-type-menu")
         }
     }
 
-    this.post_delete = function(doc) {
-        if (doc.type == "Topic" && doc.topic_type == "http://www.deepamehta.de/core/topictype/TopicType") {
+    this.post_update_topic = function(topic, old_properties) {
+        if (topic.type_uri == "http://www.deepamehta.de/core/topictype/TopicType") {
+            alert("typeeditor.post_update_topic: Topic=" + JSON.stringify(topic))
+            // update type URI
+            var old_type_uri = old_properties["http://www.deepamehta.de/core/property/TypeURI"]
+            var new_type_uri = topic.properties["http://www.deepamehta.de/core/property/TypeURI"]
+            if (old_type_uri != new_type_uri) {
+                alert("Type URI changed from \"" + old_type_uri + "\" to \"" + new_type_uri + "\"")
+                set_topic_type_uri(old_type_uri, new_type_uri)
+            }
+            // update type label
+            var old_type_label = old_properties["http://www.deepamehta.de/core/property/TypeName"]
+            var new_type_label = topic.properties["http://www.deepamehta.de/core/property/TypeName"]
+            if (old_type_label != new_type_label) {
+                alert("Type label changed from \"" + old_type_label + "\" to \"" + new_type_label + "\"")
+                set_topic_type_label(new_type_uri, new_type_label)
+            }
+        }
+    }
+
+    this.post_delete = function(topic) {
+        if (topic.type == "Topic" && topic.topic_type == "http://www.deepamehta.de/core/topictype/TopicType") {
             // 1) Update cached type definition
-            var type_uri = get_value(doc, "type_uri")
+            var type_uri = get_value(topic, "type_uri")
             remove_topic_type(type_uri)
             // 2) Rebuild type menu
             rebuild_type_menu("create-type-menu")
         }
     }
 
-    this.render_field_content = function(field, doc) {
+    this.render_field_content = function(field, topic) {
         if (field.model.type == "field-definition") {
             var content = $("<ul>")
-            for (var i = 0, field; field = get_topic_type(doc).fields[i]; i++) {
+            for (var i = 0, field; field = get_topic_type(topic).fields[i]; i++) {
                 content.append($("<li>").text(field_label(field) + " (" + FIELD_TYPES[field.model.type] + ")"))
             }
             return content
         }
     }
 
-    this.render_form_field = function(field, doc) {
+    this.render_form_field = function(field, topic) {
         if (field.model.type == "field-definition") {
             var table = $("<table>").attr("id", "field-editors")
             //
@@ -99,10 +131,10 @@ function dm3_typeeditor() {
      * Note: we must do this in the "post" hook because add_field_editor()
      * requires the "field-editors" table to exist on the page already.
      */
-    this.post_render_form_field = function(field, doc) {
+    this.post_render_form_field = function(field, topic) {
         if (field.model.type == "field-definition") {
             field_editors = []
-            for (var i = 0, field; field = get_topic_type(doc).fields[i]; i++) {
+            for (var i = 0, field; field = get_topic_type(topic).fields[i]; i++) {
                 add_field_editor(field, i)
             }
         }
@@ -115,10 +147,10 @@ function dm3_typeeditor() {
         }
     }
 
-    this.pre_submit_form = function(doc) {
-        if (doc.type_uri == "http://www.deepamehta.de/core/topictype/TopicType") {
+    this.pre_submit_form = function(topic) {
+        if (topic.type_uri == "http://www.deepamehta.de/core/topictype/TopicType") {
             // update type definition (add, remove, and update fields)
-            var type_uri = doc.properties["http://www.deepamehta.de/core/property/TypeURI"]
+            var type_uri = topic.properties["http://www.deepamehta.de/core/property/TypeURI"]
             log("Updating topic type \"" + type_uri + "\" (" + field_editors.length + " data fields):")
             for (var i = 0, editor; editor = field_editors[i]; i++) {
                 if (editor.field_is_new) {
@@ -139,12 +171,12 @@ function dm3_typeeditor() {
             }
             // update type definition (icon)
             var icon_src = $("[field-uri=http://www.deepamehta.de/core/property/Icon] img").attr("src")
-            get_topic_type(doc).view.icon_src = icon_src
+            get_topic_type(topic).view.icon_src = icon_src
             // doc.view.icon_src = icon_src
         }
 
         function add_data_field(editor) {
-            var type_uri = doc.properties["http://www.deepamehta.de/core/property/TypeURI"]
+            var type_uri = topic.properties["http://www.deepamehta.de/core/property/TypeURI"]
             var field = editor.get_new_field()
             // update DB
             dmc.add_data_field(type_uri, field)
@@ -153,7 +185,7 @@ function dm3_typeeditor() {
         }
 
         function update_data_field(editor) {
-            var type_uri = doc.properties["http://www.deepamehta.de/core/property/TypeURI"]
+            var type_uri = topic.properties["http://www.deepamehta.de/core/property/TypeURI"]
             // update memory
             var field = editor.update_field()
             log(".......... update_data_field() => " + JSON.stringify(field))
@@ -162,7 +194,7 @@ function dm3_typeeditor() {
         }
 
         function remove_data_field(editor) {
-            var type_uri = doc.properties["http://www.deepamehta.de/core/property/TypeURI"]
+            var type_uri = topic.properties["http://www.deepamehta.de/core/property/TypeURI"]
             // update DB
             dmc.remove_data_field(type_uri, editor.field_uri)
             // update memory
