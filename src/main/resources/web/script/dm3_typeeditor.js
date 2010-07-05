@@ -52,8 +52,8 @@ function dm3_typeeditor() {
     }
 
     /**
-     * Once a "Topic Type" topic is updated we must
-     * 1) Update the cached type definition.
+     * Once a topic type is created we must
+     * 1) Update the type cache.
      * 2) Rebuild the "Create" button's type menu.
      *
      * @param   topic   The topic just created.
@@ -62,39 +62,42 @@ function dm3_typeeditor() {
      */
     this.post_create_topic = function(topic) {
         if (topic.type_uri == "http://www.deepamehta.de/core/topictype/TopicType") {
-            alert("typeeditor.post_create_topic: Topic=" + JSON.stringify(topic))
-            // 1) Update cached type definition
+            // 1) Update type cache
             var type_uri = topic.uri
-            add_topic_type(type_uri, topic)     // Note: semantically this is an "update type" but
-                                                // functional there is no difference to "add type"
+            add_topic_type(type_uri, topic)
             // 2) Rebuild type menu
             rebuild_type_menu("create-type-menu")
         }
     }
 
+    /**
+     * Once a topic type is created we must
+     * 1) Update the type cache.
+     * 2) Rebuild the "Create" button's type menu.
+     */
     this.post_update_topic = function(topic, old_properties) {
         if (topic.type_uri == "http://www.deepamehta.de/core/topictype/TopicType") {
-            alert("typeeditor.post_update_topic: Topic=" + JSON.stringify(topic))
+            // 1) Update type cache
             // update type URI
             var old_type_uri = old_properties["http://www.deepamehta.de/core/property/TypeURI"]
             var new_type_uri = topic.properties["http://www.deepamehta.de/core/property/TypeURI"]
             if (old_type_uri != new_type_uri) {
-                alert("Type URI changed from \"" + old_type_uri + "\" to \"" + new_type_uri + "\"")
                 set_topic_type_uri(old_type_uri, new_type_uri)
             }
             // update type label
             var old_type_label = old_properties["http://www.deepamehta.de/core/property/TypeName"]
             var new_type_label = topic.properties["http://www.deepamehta.de/core/property/TypeName"]
             if (old_type_label != new_type_label) {
-                alert("Type label changed from \"" + old_type_label + "\" to \"" + new_type_label + "\"")
                 set_topic_type_label(new_type_uri, new_type_label)
             }
+            // 2) Rebuild type menu
+            rebuild_type_menu("create-type-menu")
         }
     }
 
     this.post_delete = function(topic) {
         if (topic.type == "Topic" && topic.topic_type == "http://www.deepamehta.de/core/topictype/TopicType") {
-            // 1) Update cached type definition
+            // 1) Update type cache
             var type_uri = get_value(topic, "type_uri")
             remove_topic_type(type_uri)
             // 2) Rebuild type menu
@@ -383,8 +386,8 @@ function dm3_typeeditor() {
             case "html":
                 break
             case "relation":
-                if (!options.model.related_type) {
-                    options.model.related_type = keys(topic_types)[0]
+                if (!options.model.related_type_uri) {
+                    options.model.related_type_uri = keys(topic_types)[0]
                 }
                 break
             default:
@@ -449,12 +452,12 @@ function dm3_typeeditor() {
 
             function build_topictype_menu() {
                 var topictype_menu = create_type_menu("topictype-menu_" + editor_id, topictype_changed)
-                topictype_menu.select(options.model.related_type)
+                topictype_menu.select(options.model.related_type_uri)
                 //
                 options_area.append(topictype_menu.dom)
 
                 function topictype_changed(menu_item) {
-                    options.model.related_type = menu_item.label
+                    options.model.related_type_uri = menu_item.value
                 }
             }
         }
