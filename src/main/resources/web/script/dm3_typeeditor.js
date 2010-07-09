@@ -117,12 +117,12 @@ function dm3_typeeditor() {
 
     this.render_form_field = function(field, topic) {
         if (field.model.type == "field-definition") {
-            var table = $("<table>").attr("id", "field-editors")
+            var editors_list = $("<ul>").attr("id", "field-editors")
             //
-            var add_field_button = ui.button("add-field-button", do_add_field, "Add Field", "circle-plus")
+            var add_field_button = ui.button("add-field-button", do_add_field, "Add Data Field", "circle-plus")
             //
             var form_field = $("<div>")
-            form_field.append(table)
+            form_field.append(editors_list)
             form_field.append(add_field_button.addClass("add-field-button"))
             return form_field
         }
@@ -132,7 +132,7 @@ function dm3_typeeditor() {
      * Adds the field editors to the page.
      *
      * Note: we must do this in the "post" hook because add_field_editor()
-     * requires the "field-editors" table to exist on the page already.
+     * requires the "field-editors" list to exist on the page already.
      */
     this.post_render_form_field = function(field, topic) {
         if (field.model.type == "field-definition") {
@@ -140,6 +140,8 @@ function dm3_typeeditor() {
             for (var i = 0, field; field = get_topic_type(topic).fields[i]; i++) {
                 add_field_editor(field, i)
             }
+            //
+            $("#field-editors").sortable()
         }
     }
 
@@ -265,7 +267,6 @@ function dm3_typeeditor() {
     function add_field_editor(field, i) {
         var field_editor = new FieldEditor(field, i)
         field_editors.push(field_editor)
-        $("#field-editors").append(field_editor.dom)
     }
 
 
@@ -287,12 +288,18 @@ function dm3_typeeditor() {
 
         log("Creating FieldEditor for \"" + field.uri + "\" editor ID=" + editor_id);
         log("..... " + JSON.stringify(field))
+        //
+        this.field_uri = field.uri
+        // status tracking
+        this.field_is_new = !field.uri      // Maximal one of these 3 flags evaluates to true.
+        this.field_is_deleted = false       // Note: all flags might evaluate to false. This is the case
+        this.field_has_changed = field.uri  // for newly added fields which are removed right away.
+        //
         var editor = this
-        var delete_button = ui.button("deletefield-button_" + editor_id, do_delete_field, "", "circle-minus")
+        var delete_button = ui.button("deletefield-button_" + editor_id, do_delete_field, "", "close")
+            .addClass("delete-field-button");
         var fieldname_input = $("<input>").val(field_label(field))
         var fieldtype_menu = create_fieldtype_menu()
-        var td1 = $("<td>").addClass("field-editor").append(delete_button.addClass("delete-field-button"))
-        var td2 = $("<td>").addClass("field-editor")
         // - options area -
         // The options area holds fieldtype-specific GUI elements.
         // For text fields, e.g. the text editor menu ("single line" / "multi line")
@@ -300,18 +307,16 @@ function dm3_typeeditor() {
         var options_area = $("<span>")      // view
         var lines_input                     // view
         //
-        td2.append($("<span>").addClass("field-name field-editor-label").text("Name"))
-        td2.append(fieldname_input).append("<br>")
-        td2.append($("<span>").addClass("field-name field-editor-label").text("Type"))
-        td2.append(fieldtype_menu.dom).append(options_area)
         build_options_area()
         //
-        this.field_uri = field.uri
-        this.dom = $("<tr>").append(td1).append(td2)
-        //
-        this.field_is_new = !field.uri      // Maximal one of these 3 flags evaluates to true.
-        this.field_is_deleted = false       // Note: all flags might evaluate to false. This is the case
-        this.field_has_changed = field.uri  // for newly added fields which are removed right away.
+        var dom = $("<li>").addClass("field-editor").addClass("ui-state-default")
+            .append($("<span>").addClass("field-name field-editor-label").text("Name"))
+            .append(fieldname_input).append(delete_button).append("<br>")
+            .append($("<span>").addClass("field-name field-editor-label").text("Type"))
+            .append(fieldtype_menu.dom).append(options_area)
+        // add editor to page
+        $("#field-editors").append(dom)
+        delete_button.position({my: "right top", at: "right top", of: dom})
 
         this.get_new_field = function() {
             field.uri = to_id(fieldname_input.val())
@@ -358,7 +363,7 @@ function dm3_typeeditor() {
 
         function do_delete_field() {
             // update GUI
-            editor.dom.remove()
+            dom.remove()
             // update model
             if (editor.field_has_changed) {
                 editor.field_is_deleted = true

@@ -1,38 +1,62 @@
 
-DeepaMehta 3
-============
+Type Editor Plugin for DeepaMehta 3
+===================================
 
-DeepaMehta is a platform for collaboration and knowledge management.
+The Type Editor plugin allows interactive creation and modification of topic types. You can e.g. create a topic type "Book" along with its data fields "Title", "Author", "Abstract", "Publication Date". Once the "Book" topic type is defined you can create books and search for books (type-based searching is provided by the optional Typing plugin).
 
-Technologically DeepaMehta is made of Java, Neo4j, Lucene, Javascript/AJAX, jQuery, jQuery-UI, and HTML 5 Canvas.
-All DeepaMehta modules are OSGi bundles.
-DeepaMehta 3 is a complete rewrite of DeepaMehta 2.
+Data fields carries data of different types. There are 5 data field types: *Text*, *Number*, *Date* (backed by a datepicker widget), *Styled Text* (backed by a WYSIWYG editor), and *Relation*. The latter is special: a Relation data field carries a relation to another topic. In the book example the "Author" data field could carry a relation to a *Person* topic.
 
-<http://www.deepamehta.de>
+When the Type Editor plugin is installed you can also modify the topic types that already exist on your DeepaMehta 3 installation. These include the core topic types (like *Note*) as well as the topic types provided by other plugins (like *Person* and *Institution* as provided by DM3 Contact plugin).
 
 
 Requirements
 ------------
 
-*To be written*
+* A DeepaMehta 3 installation  
+  <http://github.com/jri/deepamehta3-parent>
+
+* Other DeepaMehta 3 plugins:
+
+  - *Iconpicker*  
+    <http://github.com/jri/deepamehta3-iconpicker>  
+    The Iconpicker plugin let you attatch an icon to a topic type by means of an iconpicker widget.
+
+  - *Typing* (optional install)  
+    <http://github.com/jri/deepamehta3-parent>  
+    The Typing plugin provides a type-based search.
+    (FIXME: doesn't exists yet)
 
 
-Installation
-------------
-
-*To be written*
-
-
-Running
+Install
 -------
 
-*To be written*
+The most easy way to use the Type Editor plugin is to install the DeepaMehta 3 binary distribution as it is pre-packaged with a set of useful plugins. The installation is described here:  
+<http://github.com/jri/deepamehta3-parent>
 
 
-Updating
---------
+Usage Hints
+-----------
 
-*To be written*
+*   Create a new topic type by choosing *Topic Type* from the Create menu and click the *Create* button.
+    (A topic type is itself a topic and is represented on the canvas.) Enter a name for the topic type.
+
+*   Add a data field by clicking the *Add Data Field* button. Name the data field and choose its type.
+    Five data field types are available: *Text*, *Number*, *Date*, *Styled Text*, and *Relation*.
+    Depending on the data field type set further options for the data field, e.g. for Relation fields
+    choose the related topic type.
+
+*   Change the order of the data fields by dragging them around.
+
+*   Remove a data field by clicking its "Close" button (upper right corner).
+
+*   When you're done with the type definition, click the *Save* button.
+    The newly created type now appears in the Create menu -- ready for creating topics of that type.
+
+*   Delete a topic type by revealing it, and then delete it (just like any other topic).
+
+*   Note: When you change a topic type definition, e.g. by renaming it, or by adding/removing fields,
+    or even when you delete the topic type, all this doesn't affect existing topics of that type.
+    (FIXME: not true anymore)
 
 
 Version History
@@ -40,32 +64,16 @@ Version History
 
 **v0.4** -- upcoming
 
-* Fundamental under the hood technology/architectural changes
-* CouchDB is replaced by Neo4j
-* Java-based middle-tier with REST interface
-* All DeepaMehta modules are OSGi bundles
+* New data field type: *Number*
+* The order of data fields is changable by drag and drop
+* Compatible with DeepaMehta 3 v0.4
 
-**v0.3** -- Mar 5, 2010
+**v0.3** -- Mar 6, 2010
 
-* Persistent topicmaps (plugin *DM3 Topicmaps*)
-* Type editor (plugin *DM3 Type Editor*)
-* Icon picker (plugin *DM3 Icons*)
-* New topic type "To Do" (plugin *DM3 Project*)
-* More flexible plugin developer framework
-
-**v0.2** -- Dec 1, 2009
-
-* Framework for plugin developers
-* Autocompletion facility
-* Topics have icons
-* jQuery UI based GUI
-* 7 general purpose plugins (*DM3 Time*, *DM3 Workspaces*, *DM3 Contacts*, *DM3 Email*, *DM3 Import*, *DM3 Accounts*, *DM3 Typing*) and 1 custom application (*Poemspace*) available
-
-**v0.1** -- Sep 15, 2009
-
-* Basic functionality (Creating notes, edit, delete. Relate notes to other notes, navigate alongside relations. Attach files to notes. Fulltext searching in notes, also in attachments. Graphical network display of related notes.)
+* Basic functionality
+* Compatible with DeepaMehta 3 v0.3
 
 
 ------------
 Jörg Richter  
-May 24, 2010
+July 9, 2010

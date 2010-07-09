@@ -1,10 +1,12 @@
+#field-editors {
+    list-style-type: none;
+    padding-left: 0;
+}
+
 .field-editor {
-    vertical-align: top;
-    border-width: 1px;
-    border-color: gray;
-    border-bottom-style: dashed;
-    padding-top: 0.4em;
-    padding-bottom: 0.4em;
+    padding: 0.4em 0.7em;
+    margin-top: 0.4em;
+    margin-right: 0.4em;
 }
 
 .field-editor-menu {
@@ -21,5 +23,4 @@
 }
 
 .delete-field-button {
-    margin-right: 1.2em;
 }
