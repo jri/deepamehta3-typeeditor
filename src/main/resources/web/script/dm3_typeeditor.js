@@ -174,6 +174,8 @@ function dm3_typeeditor() {
                     log("..... \"" + editor.field_uri + "\" => dummy")
                 }
             }
+            //
+            // set_data_field_order()   // FIXME: activate
             // update type definition (icon)
             var icon_src = $("[field-uri=http://www.deepamehta.de/core/property/Icon] img").attr("src")
             get_topic_type(topic).view.icon_src = icon_src
@@ -204,6 +206,18 @@ function dm3_typeeditor() {
             dmc.remove_data_field(type_uri, editor.field_uri)
             // update memory
             remove_field(type_uri, editor.field_uri)
+        }
+
+        function set_data_field_order() {
+            var type_uri = topic.properties["http://www.deepamehta.de/core/property/TypeURI"]
+            var field_uris = []
+            $("#field-editors li").each(function() {
+                field_uris.push(get_field_editor(this).field_uri)
+            })
+            // update DB
+            dmc.set_data_field_order(type_uri, field_uris)
+            // update memory
+            // TODO
         }
     }
 
@@ -269,6 +283,11 @@ function dm3_typeeditor() {
         field_editors.push(field_editor)
     }
 
+    function get_field_editor(dom) {
+        var editor_id = $(dom).attr("id").substr("field-editor_".length)
+        return field_editors[editor_id]
+    }
+
 
 
     /************************************/
@@ -283,6 +302,7 @@ function dm3_typeeditor() {
      * Keeps track of user interaction and tells the caller how to update the actual data field model eventually.
      *
      * @param   field   the underlying data field model to edit
+     *                  (object with "uri", "model", "view", and "indexing_mode" attributes)
      */
     function FieldEditor(field, editor_id) {
 
@@ -309,7 +329,8 @@ function dm3_typeeditor() {
         //
         build_options_area()
         //
-        var dom = $("<li>").addClass("field-editor").addClass("ui-state-default")
+        var dom = $("<li>").attr("id", "field-editor_" + editor_id)
+            .addClass("field-editor").addClass("ui-state-default")
             .append($("<span>").addClass("field-name field-editor-label").text("Name"))
             .append(fieldname_input).append(delete_button).append("<br>")
             .append($("<span>").addClass("field-name field-editor-label").text("Type"))

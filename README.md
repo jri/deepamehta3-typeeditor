@@ -8,6 +8,9 @@ Data fields carries data of different types. There are 5 data field types: *Text
 
 When the Type Editor plugin is installed you can also modify the topic types that already exist on your DeepaMehta 3 installation. These include the core topic types (like *Note*) as well as the topic types provided by other plugins (like *Person* and *Institution* as provided by DM3 Contact plugin).
 
+DeepaMehta 3 is a platform for collaboration and knowledge management.  
+<http://github.com/jri/deepamehta3-parent>
+
 
 Requirements
 ------------
@@ -17,14 +20,14 @@ Requirements
 
 * Other DeepaMehta 3 plugins:
 
-  - *Iconpicker*  
-    <http://github.com/jri/deepamehta3-iconpicker>  
-    The Iconpicker plugin let you attatch an icon to a topic type by means of an iconpicker widget.
+    - *Iconpicker*  
+        <http://github.com/jri/deepamehta3-iconpicker>  
+        The Iconpicker plugin let you attatch an icon to a topic type by means of an iconpicker widget.
 
-  - *Typing* (optional install)  
-    <http://github.com/jri/deepamehta3-parent>  
-    The Typing plugin provides a type-based search.
-    (FIXME: doesn't exists yet)
+    - *Typing* (optional install)  
+        <http://github.com/jri/deepamehta3-parent>  
+        The Typing plugin provides a type-based search.  
+        (FIXME: doesn't exists yet)
 
 
 Install
