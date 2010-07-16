@@ -30,13 +30,12 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                        <Export-Package>
-                            de.deepamehta.plugins.typeeditor.migrations
-                        </Export-Package>
                         <Private-Package>
-                            de.deepamehta.plugins.typeeditor
+                            de.deepamehta.plugins.typeeditor.*
                         </Private-Package>
-                        <Bundle-Activator>de.deepamehta.plugins.typeeditor.TypeEditorPlugin</Bundle-Activator>
+                        <Bundle-Activator>
+                            de.deepamehta.plugins.typeeditor.TypeEditorPlugin
+                        </Bundle-Activator>
                     </instructions>
                 </configuration>
             </plugin>

@@ -24,6 +24,9 @@ function dm3_typeeditor() {
         implementation: "PlainDocument"
     }
 
+    // The default field definition used for newly created data fields
+    var DEFAULT_DATA_FIELD = {uri: "", model: {type: "text"}, view: {editor: "single line", label: ""}}
+
     // Used to create the field type menu.
     // TODO: let this table build dynamically by installed plugins
     var FIELD_TYPES = {
@@ -160,22 +163,22 @@ function dm3_typeeditor() {
             for (var i = 0, editor; editor = field_editors[i]; i++) {
                 if (editor.field_is_new) {
                     // add field
-                    log("..... \"" + editor.field_uri + "\" => new")
+                    log("..... \"" + editor.field.uri + "\" => new")
                     add_data_field(editor)
                 } else if (editor.field_has_changed) {
                     // update field
-                    log("..... \"" + editor.field_uri + "\" => changed")
+                    log("..... \"" + editor.field.uri + "\" => changed")
                     update_data_field(editor)
                 } else if (editor.field_is_deleted) {
                     // delete field
-                    log("..... \"" + editor.field_uri + "\" => deleted")
+                    log("..... \"" + editor.field.uri + "\" => deleted")
                     remove_data_field(editor)
                 } else {
-                    log("..... \"" + editor.field_uri + "\" => dummy")
+                    log("..... \"" + editor.field.uri + "\" => dummy")
                 }
             }
             //
-            // set_data_field_order()   // FIXME: activate
+            set_data_field_order()
             // update type definition (icon)
             var icon_src = $("[field-uri=de/deepamehta/core/property/Icon] img").attr("src")
             get_topic_type(topic).view.icon_src = icon_src
@@ -203,21 +206,21 @@ function dm3_typeeditor() {
         function remove_data_field(editor) {
             var type_uri = topic.properties["de/deepamehta/core/property/TypeURI"]
             // update DB
-            dmc.remove_data_field(type_uri, editor.field_uri)
+            dmc.remove_data_field(type_uri, editor.field.uri)
             // update memory
-            remove_field(type_uri, editor.field_uri)
+            remove_field(type_uri, editor.field.uri)
         }
 
         function set_data_field_order() {
             var type_uri = topic.properties["de/deepamehta/core/property/TypeURI"]
             var field_uris = []
             $("#field-editors li").each(function() {
-                field_uris.push(get_field_editor(this).field_uri)
+                field_uris.push(get_field_editor(this).field.uri)
             })
             // update DB
             dmc.set_data_field_order(type_uri, field_uris)
             // update memory
-            // TODO
+            update_data_field_order(type_uri, field_uris)
         }
     }
 
@@ -273,9 +276,7 @@ function dm3_typeeditor() {
     }
 
     function do_add_field() {
-        // the default field is a single line text field, with yet empty ID and label
-        var field = {id: "", model: {type: "text"}, view: {editor: "single line", label: ""}, content: ""}
-        add_field_editor(field, field_editors.length)
+        add_field_editor(DEFAULT_DATA_FIELD, field_editors.length)
     }
 
     function add_field_editor(field, i) {
@@ -309,7 +310,7 @@ function dm3_typeeditor() {
         log("Creating FieldEditor for \"" + field.uri + "\" editor ID=" + editor_id);
         log("..... " + JSON.stringify(field))
         //
-        this.field_uri = field.uri
+        this.field = field
         // status tracking
         this.field_is_new = !field.uri      // Maximal one of these 3 flags evaluates to true.
         this.field_is_deleted = false       // Note: all flags might evaluate to false. This is the case
