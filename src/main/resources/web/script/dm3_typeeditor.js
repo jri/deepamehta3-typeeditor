@@ -1,6 +1,6 @@
 function dm3_typeeditor() {
 
-    // javascript_source("vendor/dm3-typeeditor/script/base64.js")
+    register_field_renderer("/de.deepamehta.3-typeeditor/script/field_definition_renderer.js")
     css_stylesheet("/de.deepamehta.3-typeeditor/style/dm3-typeeditor.css")
 
     // The type definition used for newly created topic types
@@ -8,15 +8,16 @@ function dm3_typeeditor() {
         uri: "de/deepamehta/core/topictype/UnnamedTopicType",
         fields: [
             {
+                label: "Name",
                 uri: "de/deepamehta/core/property/Name",
-                model: {type: "text"},
-                view: {label: "Name"},
+                data_type: "text",
+                editor: "single line",
                 indexing_mode: "FULLTEXT"
             },
             {
+                label: "Description",
                 uri: "de/deepamehta/core/property/Description",
-                model: {type: "html"},
-                view: {label: "Description", editor: "multi line"},
+                data_type: "html",
                 indexing_mode: "FULLTEXT"
             }
         ],
@@ -25,17 +26,20 @@ function dm3_typeeditor() {
     }
 
     // The default field definition used for newly created data fields
-    var DEFAULT_DATA_FIELD = {uri: "", model: {type: "text"}, view: {editor: "single line", label: ""}}
+    var DEFAULT_DATA_FIELD = {label: "", uri: "", data_type: "text", editor: "single line"}
 
-    // Used to create the field type menu.
-    // TODO: let this table build dynamically by installed plugins
-    var FIELD_TYPES = {
-        text: "Text",
-        number: "Number",
-        date: "Date",
-        html: "Styled Text (HTML)",
-        relation: "Relation"
+    // Used to create the data type menu.
+    // Note: is a property to let the Field Definition Renderer access it.
+    // TODO: let this table build dynamically by installed plugins.
+    this.DATA_TYPES = {
+        text:     {label: "Text",               renderer_class: "TextFieldRenderer"},
+        number:   {label: "Number",             renderer_class: "NumberFieldRenderer"},
+        date:     {label: "Date",               renderer_class: "DateFieldRenderer"},
+        html:     {label: "Styled Text (HTML)", renderer_class: "HTMLFieldRenderer"},
+        relation: {label: "Relation",           renderer_class: "ReferenceFieldRenderer"}
     }
+
+    var plugin = this
 
     var field_editors
 
@@ -108,50 +112,9 @@ function dm3_typeeditor() {
         }
     }
 
-    this.render_field_content = function(field, topic) {
-        if (field.model.type == "field-definition") {
-            var content = $("<ul>")
-            for (var i = 0, field; field = get_topic_type(topic).fields[i]; i++) {
-                content.append($("<li>").text(field_label(field) + " (" + FIELD_TYPES[field.model.type] + ")"))
-            }
-            return content
-        }
-    }
-
-    this.render_form_field = function(field, topic) {
-        if (field.model.type == "field-definition") {
-            var editors_list = $("<ul>").attr("id", "field-editors")
-            //
-            var add_field_button = ui.button("add-field-button", do_add_field, "Add Data Field", "circle-plus")
-            //
-            var form_field = $("<div>")
-            form_field.append(editors_list)
-            form_field.append(add_field_button.addClass("add-field-button"))
-            return form_field
-        }
-    }
-
-    /**
-     * Adds the field editors to the page.
-     *
-     * Note: we must do this in the "post" hook because add_field_editor()
-     * requires the "field-editors" list to exist on the page already.
-     */
-    this.post_render_form_field = function(field, topic) {
-        if (field.model.type == "field-definition") {
+    this.pre_render_form = function(topic) {
+        if (topic.type_uri == "de/deepamehta/core/topictype/TopicType") {
             field_editors = []
-            for (var i = 0, field; field = get_topic_type(topic).fields[i]; i++) {
-                add_field_editor(field, i)
-            }
-            //
-            $("#field-editors").sortable()
-        }
-    }
-
-    this.get_field_content = function(field) {
-        if (field.model.type == "field-definition") {
-            // prevent this field from being updated
-            return null
         }
     }
 
@@ -232,54 +195,11 @@ function dm3_typeeditor() {
 
 
 
-    // FIXME: to be dropped
-    function save_topic_type(type_id, typedef) {
-        log("Saving topic type \"" + type_id + "\"")
-        var type_topic = create_topic("Topic Type", {"type_id": type_id}, {type_definition: typedef})
-        // icon
-        if (typedef.view && typedef.view.icon_src) {
-            var icon_src = typedef.view.icon_src
-            var icon_id = dm3_icons.by_attachment(icon_src)
-            if (icon_id) {
-                log("..... icon topic for " + icon_src + " exists already")
-            } else {
-                log("..... creating icon topic for " + icon_src)
-                var attachment = build_attachment(icon_src)
-                var icon_topic = create_topic("Icon", {"Name": basename(icon_src)}, {_attachments: attachment})
-                var icon_id = icon_topic._id
-                log("..... " + icon_topic._id)
-            }
-            create_relation("Relation", type_topic._id, icon_id)
-        }
-
-        function build_attachment(icon_src) {
-            var icon_data = db.openBinaryAttachment("_design/deepamehta3", icon_src)
-            var encoded_data = Base64.encode(icon_data)
-            log(".......... icon data: " + icon_data.length + " bytes")
-            log(".......... " + dump(icon_data, 32))
-            log(".......... " + encoded_data.substr(0, 50) + " (" + encoded_data.length + " base64 bytes)")
-            var attachment = {}
-            attachment[icon_src] = {
-                content_type: mime_type(icon_src),
-                data: encoded_data
-            }
-            return attachment
-        }
-
-        function dump(str, count) {
-            var d = ""
-            for (var i = 0; i < count; i++) {
-                d += str.charCodeAt(i) + " "
-            }
-            return d
-        }
+    this.do_add_field = function() {
+        plugin.add_field_editor(clone(DEFAULT_DATA_FIELD), field_editors.length)
     }
 
-    function do_add_field() {
-        add_field_editor(DEFAULT_DATA_FIELD, field_editors.length)
-    }
-
-    function add_field_editor(field, i) {
+    this.add_field_editor = function(field, i) {
         var field_editor = new FieldEditor(field, i)
         field_editors.push(field_editor)
     }
@@ -319,10 +239,10 @@ function dm3_typeeditor() {
         var editor = this
         var delete_button = ui.button("deletefield-button_" + editor_id, do_delete_field, "", "close")
             .addClass("delete-field-button");
-        var fieldname_input = $("<input>").val(field_label(field))
-        var fieldtype_menu = create_fieldtype_menu()
+        var fieldname_input = $("<input>").val(field.label)
+        var datatype_menu = create_datatype_menu()
         // - options area -
-        // The options area holds fieldtype-specific GUI elements.
+        // The options area holds data type-specific GUI elements.
         // For text fields, e.g. the text editor menu ("single line" / "multi line")
         var options = clone(field)          // model
         var options_area = $("<span>")      // view
@@ -335,14 +255,14 @@ function dm3_typeeditor() {
             .append($("<span>").addClass("field-name field-editor-label").text("Name"))
             .append(fieldname_input).append(delete_button).append("<br>")
             .append($("<span>").addClass("field-name field-editor-label").text("Type"))
-            .append(fieldtype_menu.dom).append(options_area)
+            .append(datatype_menu.dom).append(options_area)
         // add editor to page
         $("#field-editors").append(dom)
         delete_button.position({my: "right top", at: "right top", of: dom})
 
         this.get_new_field = function() {
-            field.uri = to_id(fieldname_input.val())
             update_field()
+            field.uri = to_id(fieldname_input.val())
             return field
         }
 
@@ -351,34 +271,35 @@ function dm3_typeeditor() {
         }
 
         /**
-         * Reads out the status of the GUI elements (view) and updates the field (model) accordingly.
+         * Transfers the working copy to the actual data field model.
          */
         function update_field() {
-            field.model = options.model
-            field.view = options.view
+            copy(options, field)
+            //
+            field.renderer_class = plugin.DATA_TYPES[field.data_type].renderer_class
             // Note: the input fields must be read out manually
             // (for input fields the "options" model is not updated on-the-fly)
-            field.view.label = fieldname_input.val()
+            field.label = fieldname_input.val()
             if (lines_input) {
-                field.view.lines = lines_input.val()
+                field.lines = lines_input.val()
             }
             //
-            if (field.model.type == "relation") {
-                options.view.editor = "checkboxes"
+            if (field.data_type == "relation") {
+                field.editor = "checkboxes"
             }
             return field
         }
 
-        function create_fieldtype_menu() {
+        function create_datatype_menu() {
             var menu_id = "fieldtype-menu_" + editor_id
-            var menu = ui.menu(menu_id, fieldtype_changed)
+            var menu = ui.menu(menu_id, datatype_changed)
             menu.dom.addClass("field-editor-menu")
             // add items
-            for (var fieldtype in FIELD_TYPES) {
-                menu.add_item({label: FIELD_TYPES[fieldtype], value: fieldtype})
+            for (var data_type in plugin.DATA_TYPES) {
+                menu.add_item({label: plugin.DATA_TYPES[data_type].label, value: data_type})
             }
             // select item
-            menu.select(field.model.type)
+            menu.select(field.data_type)
             //
             return menu
         }
@@ -395,15 +316,16 @@ function dm3_typeeditor() {
             }
         }
 
-        function fieldtype_changed(menu_item) {
-            options.model.type = menu_item.value
+        function datatype_changed(menu_item) {
+            var data_type = menu_item.value
+            options.data_type = data_type
             //
             // FIXME: must adjust model here, e.g. when switching from "relation" to "text" -- not nice!
             // TODO: let the adjustment do by installed plugins.
-            switch (options.model.type) {
+            switch (data_type) {
             case "text":
-                if (options.view.editor == "checkboxes") {
-                    options.view.editor = "single line"
+                if (options.editor == "checkboxes") {
+                    options.editor = "single line"
                 }
                 break
             case "number":
@@ -413,12 +335,12 @@ function dm3_typeeditor() {
             case "html":
                 break
             case "relation":
-                if (!options.model.related_type_uri) {
-                    options.model.related_type_uri = keys(topic_types)[0]
+                if (!options.related_type_uri) {
+                    options.related_type_uri = keys(topic_types)[0]
                 }
                 break
             default:
-                alert("ERROR (FieldEditor.fieldtype_changed):\nunexpected field type (" + options.model.type + ")")
+                alert("ERROR (FieldEditor.datatype_changed):\nunexpected data type (" + data_type + ")")
             }
             //
             update_options_area()
@@ -431,12 +353,12 @@ function dm3_typeeditor() {
 
         function build_options_area() {
             // TODO: let the options area build by installed plugins
-            switch (options.model.type) {
+            switch (options.data_type) {
             case "text":
                 // text editor menu
                 build_texteditor_menu()
                 // lines input
-                if (options.view.editor == "multi line") {
+                if (options.editor == "multi line") {
                     build_lines_input()
                 }
                 break
@@ -451,7 +373,7 @@ function dm3_typeeditor() {
                 build_topictype_menu()
                 break
             default:
-                alert("ERROR (FieldEditor.build_options_area):\nunexpected field type (" + options.model.type + ")")
+                alert("ERROR (FieldEditor.build_options_area):\nunexpected data type (" + options.data_type + ")")
             }
 
             function build_texteditor_menu() {
@@ -459,19 +381,19 @@ function dm3_typeeditor() {
                 texteditor_menu.dom.addClass("field-editor-menu")
                 texteditor_menu.add_item({label: "Single Line", value: "single line"})
                 texteditor_menu.add_item({label: "Multi Line", value: "multi line"})
-                texteditor_menu.select(options.view.editor)
+                texteditor_menu.select(options.editor)
                 //
                 options_area.append(texteditor_menu.dom)
 
                 function texteditor_changed(menu_item) {
-                    options.view.editor = menu_item.value
+                    options.editor = menu_item.value
                     update_options_area()
                 }
             }
 
             function build_lines_input() {
                 lines_input = $("<input>").attr("size", 3)
-                lines_input.val(options.view.lines || DEFAULT_AREA_HEIGHT)
+                lines_input.val(options.lines || DEFAULT_AREA_HEIGHT)
                 //
                 options_area.append($("<span>").addClass("field-name field-editor-label").text("Lines"))
                 options_area.append(lines_input)
@@ -479,12 +401,12 @@ function dm3_typeeditor() {
 
             function build_topictype_menu() {
                 var topictype_menu = create_type_menu("topictype-menu_" + editor_id, topictype_changed)
-                topictype_menu.select(options.model.related_type_uri)
+                topictype_menu.select(options.related_type_uri)
                 //
                 options_area.append(topictype_menu.dom)
 
                 function topictype_changed(menu_item) {
-                    options.model.related_type_uri = menu_item.value
+                    options.related_type_uri = menu_item.value
                 }
             }
         }
