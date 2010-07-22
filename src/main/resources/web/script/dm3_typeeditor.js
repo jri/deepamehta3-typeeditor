@@ -26,7 +26,13 @@ function dm3_typeeditor() {
     }
 
     // The default field definition used for newly created data fields
-    var DEFAULT_DATA_FIELD = {label: "", uri: "", data_type: "text", editor: "single line"}
+    var DEFAULT_DATA_FIELD = {
+        label: "",
+        uri: "",
+        data_type: "text",
+        editable: true,
+        editor: "single line"
+    }
 
     // Used to create the data type menu.
     // Note: is a property to let the Field Definition Renderer access it.
