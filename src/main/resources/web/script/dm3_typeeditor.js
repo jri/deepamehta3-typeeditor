@@ -5,7 +5,9 @@ function dm3_typeeditor() {
 
     // The type definition used for newly created topic types
     var DEFAULT_TYPE_DEFINITION = {
+        label: "Unnamed",
         uri: "de/deepamehta/core/topictype/UnnamedTopicType",
+        js_renderer_class: "PlainDocument",
         fields: [
             {
                 label: "Name",
@@ -20,9 +22,7 @@ function dm3_typeeditor() {
                 data_type: "html",
                 indexing_mode: "FULLTEXT"
             }
-        ],
-        view: {label: "Unnamed"},
-        implementation: "PlainDocument"
+        ]
     }
 
     // The default field definition used for newly created data fields
@@ -38,11 +38,11 @@ function dm3_typeeditor() {
     // Note: is a property to let the Field Definition Renderer access it.
     // TODO: let this table build dynamically by installed plugins.
     this.DATA_TYPES = {
-        text:     {label: "Text",               renderer_class: "TextFieldRenderer"},
-        number:   {label: "Number",             renderer_class: "NumberFieldRenderer"},
-        date:     {label: "Date",               renderer_class: "DateFieldRenderer"},
-        html:     {label: "Styled Text (HTML)", renderer_class: "HTMLFieldRenderer"},
-        relation: {label: "Relation",           renderer_class: "ReferenceFieldRenderer"}
+        text:      {label: "Text",               js_renderer_class: "TextFieldRenderer"},
+        number:    {label: "Number",             js_renderer_class: "NumberFieldRenderer"},
+        date:      {label: "Date",               js_renderer_class: "DateFieldRenderer"},
+        html:      {label: "Styled Text (HTML)", js_renderer_class: "HTMLFieldRenderer"},
+        reference: {label: "Reference",          js_renderer_class: "ReferenceFieldRenderer"}
     }
 
     var plugin = this
@@ -71,7 +71,7 @@ function dm3_typeeditor() {
      *
      * @param   topic   The topic just created.
      *                  Note: in case the just created topic is a type, the entire type definition is
-     *                  passed (object with "uri", "fields", "view", and "implementation" attributes).
+     *                  passed (object with "uri", "fields", "view", and "js_renderer_class" attributes).
      */
     this.post_create_topic = function(topic) {
         if (topic.type_uri == "de/deepamehta/core/topictype/TopicType") {
@@ -98,8 +98,8 @@ function dm3_typeeditor() {
                 set_topic_type_uri(old_type_uri, new_type_uri)
             }
             // update type label
-            var old_type_label = old_properties["de/deepamehta/core/property/TypeName"]
-            var new_type_label = topic.properties["de/deepamehta/core/property/TypeName"]
+            var old_type_label = old_properties["de/deepamehta/core/property/TypeLabel"]
+            var new_type_label = topic.properties["de/deepamehta/core/property/TypeLabel"]
             if (old_type_label != new_type_label) {
                 set_topic_type_label(new_type_uri, new_type_label)
             }
@@ -150,8 +150,7 @@ function dm3_typeeditor() {
             set_data_field_order()
             // update type definition (icon)
             var icon_src = $("[field-uri=de/deepamehta/core/property/Icon] img").attr("src")
-            get_topic_type(topic).view.icon_src = icon_src
-            // doc.view.icon_src = icon_src
+            get_topic_type(topic).icon_src = icon_src
         }
 
         function add_data_field(editor) {
@@ -282,7 +281,7 @@ function dm3_typeeditor() {
         function update_field() {
             copy(options, field)
             //
-            field.renderer_class = plugin.DATA_TYPES[field.data_type].renderer_class
+            field.js_renderer_class = plugin.DATA_TYPES[field.data_type].js_renderer_class
             // Note: the input fields must be read out manually
             // (for input fields the "options" model is not updated on-the-fly)
             field.label = fieldname_input.val()
@@ -290,7 +289,7 @@ function dm3_typeeditor() {
                 field.lines = lines_input.val()
             }
             //
-            if (field.data_type == "relation") {
+            if (field.data_type == "reference") {
                 field.editor = "checkboxes"
             }
             return field
@@ -326,7 +325,7 @@ function dm3_typeeditor() {
             var data_type = menu_item.value
             options.data_type = data_type
             //
-            // FIXME: must adjust model here, e.g. when switching from "relation" to "text" -- not nice!
+            // FIXME: must adjust model here, e.g. when switching from "reference" to "text" -- not nice!
             // TODO: let the adjustment do by installed plugins.
             switch (data_type) {
             case "text":
@@ -340,9 +339,9 @@ function dm3_typeeditor() {
                 break
             case "html":
                 break
-            case "relation":
-                if (!options.related_type_uri) {
-                    options.related_type_uri = keys(topic_types)[0]
+            case "reference":
+                if (!options.ref_topic_type_uri) {
+                    options.ref_topic_type_uri = keys(topic_types)[0]
                 }
                 break
             default:
@@ -375,7 +374,7 @@ function dm3_typeeditor() {
             case "html":
                 build_lines_input()
                 break
-            case "relation":
+            case "reference":
                 build_topictype_menu()
                 break
             default:
@@ -407,12 +406,12 @@ function dm3_typeeditor() {
 
             function build_topictype_menu() {
                 var topictype_menu = create_type_menu("topictype-menu_" + editor_id, topictype_changed)
-                topictype_menu.select(options.related_type_uri)
+                topictype_menu.select(options.ref_topic_type_uri)
                 //
                 options_area.append(topictype_menu.dom)
 
                 function topictype_changed(menu_item) {
-                    options.related_type_uri = menu_item.value
+                    options.ref_topic_type_uri = menu_item.value
                 }
             }
         }
