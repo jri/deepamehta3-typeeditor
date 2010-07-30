@@ -30,11 +30,8 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                        <Private-Package>
-                            de.deepamehta.plugins.typeeditor.*
-                        </Private-Package>
                         <Bundle-Activator>
-                            de.deepamehta.plugins.typeeditor.TypeEditorPlugin
+                            de.deepamehta.core.service.Plugin
                         </Bundle-Activator>
                     </instructions>
                 </configuration>
