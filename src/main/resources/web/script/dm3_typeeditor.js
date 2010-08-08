@@ -14,12 +14,14 @@ function dm3_typeeditor() {
                 uri: "de/deepamehta/core/property/Name",
                 data_type: "text",
                 editor: "single line",
+                js_renderer_class: "TitleRenderer",
                 indexing_mode: "FULLTEXT"
             },
             {
                 label: "Description",
                 uri: "de/deepamehta/core/property/Description",
                 data_type: "html",
+                js_renderer_class: "BodyTextRenderer",
                 indexing_mode: "FULLTEXT"
             }
         ]
