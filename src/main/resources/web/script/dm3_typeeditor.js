@@ -33,7 +33,9 @@ function dm3_typeeditor() {
         uri: "",
         data_type: "text",
         editable: true,
-        editor: "single line"
+        editor: "single line",
+        js_renderer_class: "TextFieldRenderer",
+        indexing_mode: "FULLTEXT"
     }
 
     // Used to create the data type menu.
@@ -282,8 +284,6 @@ function dm3_typeeditor() {
          */
         function update_field() {
             copy(options, field)
-            //
-            field.js_renderer_class = plugin.DATA_TYPES[field.data_type].js_renderer_class
             // Note: the input fields must be read out manually
             // (for input fields the "options" model is not updated on-the-fly)
             field.label = fieldname_input.val()
@@ -326,7 +326,8 @@ function dm3_typeeditor() {
         function datatype_changed(menu_item) {
             var data_type = menu_item.value
             options.data_type = data_type
-            //
+            // set default renderer
+            options.js_renderer_class = plugin.DATA_TYPES[data_type].js_renderer_class
             // FIXME: must adjust model here, e.g. when switching from "reference" to "text" -- not nice!
             // TODO: let the adjustment do by installed plugins.
             switch (data_type) {
