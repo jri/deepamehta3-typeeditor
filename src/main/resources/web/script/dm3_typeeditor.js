@@ -1,7 +1,7 @@
 function dm3_typeeditor() {
 
-    register_field_renderer("/de.deepamehta.3-typeeditor/script/field_definition_renderer.js")
-    css_stylesheet("/de.deepamehta.3-typeeditor/style/dm3-typeeditor.css")
+    dm3c.register_field_renderer("/de.deepamehta.3-typeeditor/script/field_definition_renderer.js")
+    dm3c.css_stylesheet("/de.deepamehta.3-typeeditor/style/dm3-typeeditor.css")
 
     // The type definition used for newly created topic types
     var DEFAULT_TYPE_DEFINITION = {
@@ -63,8 +63,8 @@ function dm3_typeeditor() {
 
     this.custom_create_topic = function(type_uri) {
         if (type_uri == "de/deepamehta/core/topictype/TopicType") {
-            var topic_type = create_topic_type(DEFAULT_TYPE_DEFINITION)
-            return dmc.get_topic(topic_type.id)     // return the topic perspective of the type
+            var topic_type = dm3c.create_topic_type(DEFAULT_TYPE_DEFINITION)
+            return dm3c.restc.get_topic(topic_type.id)     // return the topic perspective of the type
         }
     }
 
@@ -74,16 +74,16 @@ function dm3_typeeditor() {
      * 2) Rebuild the "Create" button's type menu.
      *
      * @param   topic   The topic just created.
-     *                  Note: in case the just created topic is a type, the entire type definition is
-     *                  passed (object with "uri", "fields", "view", and "js_renderer_class" attributes).
+     *                  Note: in case the just created topic is a type, the entire type definition is passed
+     *                  (object with "uri", "fields", "label", "icon_src", and "js_renderer_class" attributes).
      */
     this.post_create_topic = function(topic) {
         if (topic.type_uri == "de/deepamehta/core/topictype/TopicType") {
             // 1) Update type cache
             var type_uri = topic.uri
-            add_topic_type(type_uri, topic)
+            dm3c.type_cache.add_topic_type(type_uri, topic)
             // 2) Rebuild type menu
-            rebuild_type_menu("create-type-menu")
+            dm3c.recreate_type_menu("create-type-menu")
         }
     }
 
@@ -99,26 +99,26 @@ function dm3_typeeditor() {
             var old_type_uri = old_properties["de/deepamehta/core/property/TypeURI"]
             var new_type_uri = topic.properties["de/deepamehta/core/property/TypeURI"]
             if (old_type_uri != new_type_uri) {
-                set_topic_type_uri(old_type_uri, new_type_uri)
+                dm3c.type_cache.set_topic_type_uri(old_type_uri, new_type_uri)
             }
             // update type label
             var old_type_label = old_properties["de/deepamehta/core/property/TypeLabel"]
             var new_type_label = topic.properties["de/deepamehta/core/property/TypeLabel"]
             if (old_type_label != new_type_label) {
-                set_topic_type_label(new_type_uri, new_type_label)
+                dm3c.type_cache.set_topic_type_label(new_type_uri, new_type_label)
             }
             // 2) Rebuild type menu
-            rebuild_type_menu("create-type-menu")
+            dm3c.recreate_type_menu("create-type-menu")
         }
     }
 
     this.post_delete = function(topic) {
         if (topic.type == "Topic" && topic.topic_type == "de/deepamehta/core/topictype/TopicType") {
             // 1) Update type cache
-            var type_uri = get_value(topic, "type_uri")
-            remove_topic_type(type_uri)
+            var type_uri = dm3c.get_value(topic, "type_uri")
+            dm3c.type_cache.remove_topic_type(type_uri)
             // 2) Rebuild type menu
-            rebuild_type_menu("create-type-menu")
+            dm3c.recreate_type_menu("create-type-menu")
         }
     }
 
@@ -132,55 +132,55 @@ function dm3_typeeditor() {
         if (topic.type_uri == "de/deepamehta/core/topictype/TopicType") {
             // update type definition (add, remove, and update fields)
             var type_uri = topic.properties["de/deepamehta/core/property/TypeURI"]
-            log("Updating topic type \"" + type_uri + "\" (" + field_editors.length + " data fields):")
+            dm3c.log("Updating topic type \"" + type_uri + "\" (" + field_editors.length + " data fields):")
             for (var i = 0, editor; editor = field_editors[i]; i++) {
                 if (editor.field_is_new) {
                     // add field
-                    log("..... \"" + editor.field.uri + "\" => new")
+                    dm3c.log("..... \"" + editor.field.uri + "\" => new")
                     add_data_field(editor)
                 } else if (editor.field_has_changed) {
                     // update field
-                    log("..... \"" + editor.field.uri + "\" => changed")
+                    dm3c.log("..... \"" + editor.field.uri + "\" => changed")
                     update_data_field(editor)
                 } else if (editor.field_is_deleted) {
                     // delete field
-                    log("..... \"" + editor.field.uri + "\" => deleted")
+                    dm3c.log("..... \"" + editor.field.uri + "\" => deleted")
                     remove_data_field(editor)
                 } else {
-                    log("..... \"" + editor.field.uri + "\" => dummy")
+                    dm3c.log("..... \"" + editor.field.uri + "\" => dummy")
                 }
             }
             //
             set_data_field_order()
             // update type definition (icon)
             var icon_src = $("[field-uri=de/deepamehta/core/property/Icon] img").attr("src")
-            get_topic_type(topic).icon_src = icon_src
+            dm3c.type_cache.get_topic_type(topic).icon_src = icon_src
         }
 
         function add_data_field(editor) {
             var type_uri = topic.properties["de/deepamehta/core/property/TypeURI"]
             var field = editor.get_new_field()
             // update DB
-            dmc.add_data_field(type_uri, field)
+            dm3c.restc.add_data_field(type_uri, field)
             // update memory
-            add_field(type_uri, field)
+            dm3c.type_cache.add_field(type_uri, field)
         }
 
         function update_data_field(editor) {
             var type_uri = topic.properties["de/deepamehta/core/property/TypeURI"]
             // update memory
             var field = editor.update_field()
-            log(".......... update_data_field() => " + JSON.stringify(field))
+            dm3c.log(".......... update_data_field() => " + JSON.stringify(field))
             // update DB
-            dmc.update_data_field(type_uri, field)
+            dm3c.restc.update_data_field(type_uri, field)
         }
 
         function remove_data_field(editor) {
             var type_uri = topic.properties["de/deepamehta/core/property/TypeURI"]
             // update DB
-            dmc.remove_data_field(type_uri, editor.field.uri)
+            dm3c.restc.remove_data_field(type_uri, editor.field.uri)
             // update memory
-            remove_field(type_uri, editor.field.uri)
+            dm3c.type_cache.remove_field(type_uri, editor.field.uri)
         }
 
         function set_data_field_order() {
@@ -190,9 +190,9 @@ function dm3_typeeditor() {
                 field_uris.push(get_field_editor(this).field.uri)
             })
             // update DB
-            dmc.set_data_field_order(type_uri, field_uris)
+            dm3c.restc.set_data_field_order(type_uri, field_uris)
             // update memory
-            update_data_field_order(type_uri, field_uris)
+            dm3c.type_cache.update_data_field_order(type_uri, field_uris)
         }
     }
 
@@ -205,7 +205,7 @@ function dm3_typeeditor() {
 
 
     this.do_add_field = function() {
-        plugin.add_field_editor(clone(DEFAULT_DATA_FIELD), field_editors.length)
+        plugin.add_field_editor(js.clone(DEFAULT_DATA_FIELD), field_editors.length)
     }
 
     this.add_field_editor = function(field, i) {
@@ -232,12 +232,12 @@ function dm3_typeeditor() {
      * Keeps track of user interaction and tells the caller how to update the actual data field model eventually.
      *
      * @param   field   the underlying data field model to edit
-     *                  (object with "uri", "model", "view", and "indexing_mode" attributes)
+     *                  (object with "uri", "data_type", "label", "indexing_mode", and "js_renderer_class" attributes)
      */
     function FieldEditor(field, editor_id) {
 
-        log("Creating FieldEditor for \"" + field.uri + "\" editor ID=" + editor_id);
-        log("..... " + JSON.stringify(field))
+        dm3c.log("Creating FieldEditor for \"" + field.uri + "\" editor ID=" + editor_id)
+        dm3c.log("..... " + JSON.stringify(field))
         //
         this.field = field
         // status tracking
@@ -246,14 +246,14 @@ function dm3_typeeditor() {
         this.field_has_changed = field.uri  // for newly added fields which are removed right away.
         //
         var editor = this
-        var delete_button = ui.button("deletefield-button_" + editor_id, do_delete_field, "", "close")
+        var delete_button = dm3c.ui.button("deletefield-button_" + editor_id, do_delete_field, "", "close")
             .addClass("delete-field-button");
         var fieldname_input = $("<input>").val(field.label)
         var datatype_menu = create_datatype_menu()
         // - options area -
         // The options area holds data type-specific GUI elements.
         // For text fields, e.g. the text editor menu ("single line" / "multi line")
-        var options = clone(field)          // model
+        var options = js.clone(field)          // model
         var options_area = $("<span>")      // view
         var lines_input                     // view
         //
@@ -271,7 +271,7 @@ function dm3_typeeditor() {
 
         this.get_new_field = function() {
             update_field()
-            field.uri = to_id(fieldname_input.val())
+            field.uri = js.to_id(fieldname_input.val())
             return field
         }
 
@@ -283,7 +283,7 @@ function dm3_typeeditor() {
          * Transfers the working copy to the actual data field model.
          */
         function update_field() {
-            copy(options, field)
+            js.copy(options, field)
             // Note: the input fields must be read out manually
             // (for input fields the "options" model is not updated on-the-fly)
             field.label = fieldname_input.val()
@@ -299,7 +299,7 @@ function dm3_typeeditor() {
 
         function create_datatype_menu() {
             var menu_id = "fieldtype-menu_" + editor_id
-            var menu = ui.menu(menu_id, datatype_changed)
+            var menu = dm3c.ui.menu(menu_id, datatype_changed)
             menu.dom.addClass("field-editor-menu")
             // add items
             for (var data_type in plugin.DATA_TYPES) {
@@ -344,7 +344,7 @@ function dm3_typeeditor() {
                 break
             case "reference":
                 if (!options.ref_topic_type_uri) {
-                    options.ref_topic_type_uri = keys(topic_types)[0]
+                    options.ref_topic_type_uri = dm3c.type_cache.get_type_uris()[0]
                 }
                 break
             default:
@@ -385,7 +385,7 @@ function dm3_typeeditor() {
             }
 
             function build_texteditor_menu() {
-                var texteditor_menu = ui.menu("texteditor-menu_" + editor_id, texteditor_changed)
+                var texteditor_menu = dm3c.ui.menu("texteditor-menu_" + editor_id, texteditor_changed)
                 texteditor_menu.dom.addClass("field-editor-menu")
                 texteditor_menu.add_item({label: "Single Line", value: "single line"})
                 texteditor_menu.add_item({label: "Multi Line", value: "multi line"})
@@ -408,7 +408,7 @@ function dm3_typeeditor() {
             }
 
             function build_topictype_menu() {
-                var topictype_menu = create_type_menu("topictype-menu_" + editor_id, topictype_changed)
+                var topictype_menu = dm3c.create_type_menu("topictype-menu_" + editor_id, topictype_changed)
                 topictype_menu.select(options.ref_topic_type_uri)
                 //
                 options_area.append(topictype_menu.dom)
