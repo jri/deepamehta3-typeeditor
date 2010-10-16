@@ -65,7 +65,11 @@ Usage Hints
 Version History
 ---------------
 
-**v0.4** -- upcoming
+**v0.4.1** -- Oct 16, 2010
+
+* Compatible with DeepaMehta 3 v0.4.1
+
+**v0.4** -- Aug 4, 2010
 
 * New data field type: *Number*
 * The order of data fields is changable by drag and drop
@@ -79,4 +83,4 @@ Version History
 
 ------------
 Jörg Richter  
-July 9, 2010
+Oct 16, 2010
