@@ -53,11 +53,13 @@ function dm3_typeeditor() {
 
     var field_editors
 
+    // ------------------------------------------------------------------------------------------------------ Public API
 
 
-    /**************************************************************************************************/
-    /**************************************** Overriding Hooks ****************************************/
-    /**************************************************************************************************/
+
+    // *******************************
+    // *** Overriding Plugin Hooks ***
+    // *******************************
 
 
 
@@ -81,7 +83,7 @@ function dm3_typeeditor() {
         if (topic.type_uri == "de/deepamehta/core/topictype/TopicType") {
             // 1) Update type cache
             var type_uri = topic.uri
-            dm3c.type_cache.add_topic_type(type_uri, topic)
+            dm3c.type_cache.put(type_uri, topic)
             // 2) Rebuild type menu
             dm3c.recreate_type_menu("create-type-menu")
         }
@@ -112,11 +114,11 @@ function dm3_typeeditor() {
         }
     }
 
-    this.post_delete = function(topic) {
-        if (topic.type == "Topic" && topic.topic_type == "de/deepamehta/core/topictype/TopicType") {
+    this.post_delete_topic = function(topic) {
+        if (topic.type_uri == "de/deepamehta/core/topictype/TopicType") {
             // 1) Update type cache
-            var type_uri = dm3c.get_value(topic, "type_uri")
-            dm3c.type_cache.remove_topic_type(type_uri)
+            var type_uri = topic.properties["de/deepamehta/core/property/TypeURI"]
+            dm3c.type_cache.remove(type_uri)
             // 2) Rebuild type menu
             dm3c.recreate_type_menu("create-type-menu")
         }
@@ -198,9 +200,9 @@ function dm3_typeeditor() {
 
 
 
-    /************************************************************************************************/
-    /**************************************** Custom Methods ****************************************/
-    /************************************************************************************************/
+    // **********************
+    // *** Custom Methods ***
+    // **********************
 
 
 
@@ -213,25 +215,22 @@ function dm3_typeeditor() {
         field_editors.push(field_editor)
     }
 
+    // ----------------------------------------------------------------------------------------------- Private Functions
+
     function get_field_editor(dom) {
         var editor_id = $(dom).attr("id").substr("field-editor_".length)
         return field_editors[editor_id]
     }
 
-
-
-    /************************************/
-    /********** Custom Classes **********/
-    /************************************/
-
-
+    // ------------------------------------------------------------------------------------------------- Private Classes
 
     /**
-     * Constructs the GUI for editing an underlying data field model.
-     * All changes are performed on a working copy, allowing the caller to cancel all changes.
+     * A widget for editing a data field definition.
+     *
+     * All changes are performed on a working copy, allowing the caller to cancel the changes.
      * Keeps track of user interaction and tells the caller how to update the actual data field model eventually.
      *
-     * @param   field   the underlying data field model to edit
+     * @param   field   the data field definition to edit
      *                  (object with "uri", "data_type", "label", "indexing_mode", and "js_renderer_class" attributes)
      */
     function FieldEditor(field, editor_id) {
@@ -253,7 +252,7 @@ function dm3_typeeditor() {
         // - options area -
         // The options area holds data type-specific GUI elements.
         // For text fields, e.g. the text editor menu ("single line" / "multi line")
-        var options = js.clone(field)          // model
+        var options = js.clone(field)       // model
         var options_area = $("<span>")      // view
         var lines_input                     // view
         //
