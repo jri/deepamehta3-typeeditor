@@ -33,6 +33,7 @@ function dm3_typeeditor() {
         uri: "",
         data_type: "text",
         editable: true,
+        viewable: true,
         editor: "single line",
         js_renderer_class: "TextFieldRenderer",
         indexing_mode: "FULLTEXT"
