@@ -248,7 +248,7 @@ function dm3_typeeditor() {
         var editor = this
         var delete_button = dm3c.ui.button("deletefield-button_" + editor_id, do_delete_field, "", "close")
             .addClass("delete-field-button");
-        var fieldname_input = $("<input>").val(field.label)
+        var fieldname_input = $("<input>").attr("type", "text").val(field.label)
         var datatype_menu = create_datatype_menu()
         // - options area -
         // The options area holds data type-specific GUI elements.
@@ -262,7 +262,7 @@ function dm3_typeeditor() {
         var dom = $("<li>").attr("id", "field-editor_" + editor_id)
             .addClass("field-editor").addClass("ui-state-default")
             .append($("<span>").addClass("field-name field-editor-label").text("Name"))
-            .append(fieldname_input).append(delete_button).append("<br>")
+            .append(delete_button).append(fieldname_input)
             .append($("<span>").addClass("field-name field-editor-label").text("Type"))
             .append(datatype_menu.dom).append(options_area)
         // add editor to page
@@ -400,7 +400,7 @@ function dm3_typeeditor() {
             }
 
             function build_lines_input() {
-                lines_input = $("<input>").attr("size", 3)
+                lines_input = $("<input>").addClass("field-editor-lines-input")
                 lines_input.val(options.lines || DEFAULT_AREA_HEIGHT)
                 //
                 options_area.append($("<span>").addClass("field-name field-editor-label").text("Lines"))

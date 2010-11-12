@@ -17,6 +17,10 @@
     margin-right: 0.7em;
 }
 
+.field-editor-lines-input {
+    width: 2em !important;  /* would be overridden by main.css */
+}
+
 .add-field-button {
     margin-top: 1em;
     margin-bottom: 1em;
