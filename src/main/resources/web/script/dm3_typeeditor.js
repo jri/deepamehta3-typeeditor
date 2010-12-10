@@ -67,7 +67,7 @@ function dm3_typeeditor() {
     this.custom_create_topic = function(type_uri) {
         if (type_uri == "de/deepamehta/core/topictype/TopicType") {
             var topic_type = dm3c.create_topic_type(DEFAULT_TYPE_DEFINITION)
-            return dm3c.restc.get_topic(topic_type.id)     // return the topic perspective of the type
+            return dm3c.restc.get_topic_by_id(topic_type.id)     // return the topic perspective of the type
         }
     }
 
@@ -91,7 +91,7 @@ function dm3_typeeditor() {
     }
 
     /**
-     * Once a topic type is created we must
+     * Once a topic type is updated we must
      * 1) Update the type cache.
      * 2) Rebuild the "Create" button's type menu.
      */
